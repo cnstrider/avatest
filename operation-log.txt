@@ -1,0 +1,114 @@
+部署任务环境：
+一台windows 机器，本地IP 192.168.1.36, 已安装putty,  浏览器里已安装meta mask 插件，
+使用clash for windows 作为VPN。
+一台ubuntu 22.04.5 LTS ， 本地IP  192.168.1.35.
+已安装go1.24.3.linux-amd64 版本。
+
+通过>export https_proxy="http://192.168.1.36:7890"  连接VPN.
+
+之后， 
+>curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/scripts/install.sh | sh -s
+运行avalanche cli 安装程序，
+添加运行路径/
+>export PATH=~/bin:$PATH
+显示运行结果 
+avalanche version  1.8.10 
+创建本地L1配置
+> avalanche blockchain create vicblock
+选择 --Subnet-EVM
+       --Proof of Authority 
+       -ewoq
+       --use defaults for a test ennvirnment 
+      chain ID:2025520 
+     Token Symbol: VIC
+ 系统反馈显示
+prefunding address 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC with balance 1000000000000000000000000
+File /home/victor/.avalanche-cli/subnets/ddblock/chain.json successfully written
+✓ Successfully created blockchain configuration
+Run 'avalanche blockchain describe' to view all created addresses and what their roles are
+
+>avalanche blockchain describe  vicblcok 
+系统显示返回截图。
+> cd .avalanche-cli/
+编辑  config.json 
+加入以下内容 
+
+{
+  "metricsenabled": true,
+  "metricsuserid": "pvpbgounzxbrqlhozwsy",
+  "node-config": {
+    "api-admin-enabled": true,
+    "api-ipcs-enabled": true,
+    "health-check-frequency": "2s",
+    "http-host": "0.0.0.0",
+    "index-enabled": true,
+    "network-max-reconnect-delay": "1s",
+    "network-peer-list-gossip-frequency": "250ms"
+  }
+
+之后运行配置指令
+>avalanche blockchain configure vicblock 
+ 选择node-config.json  
+ 输入具体文件路径 .avalanche-cli/
+开始部署
+>avalanche blockchain  deploy  vicblock 
+提示部署成功后，
+运行
+>ps -ef | grep ava
+以及
+>netstat -l  查看各节点运行的端口，发现endpoint  还是没有打开公共IP端口，
+进入对应进程的配置文件目录，
+
+ cd ~/.avalanche-cli/local/vicblock-local-node-local-network/NodeID-3jKUNmVtqA2EXvdXnWMKxRwwXsyfgihHq/
+flags.json 文件里 把htt-host 修改为 192.168.1.35
+   node-config 里的http-host  确认为 0.0.0.0 
+保存文件。
+
+之后 运行
+>avalanche network stop 
+> avalanche network start 
+复制 
+http://192.168.1.35:32999/ext/bc/DGYEP5Buvq9U3mT9757tVAShvF3T96HcgtxsQcrpQyQ56hYGr/rpc
+进入meta mask 添加订制网络，配置成功。
+
+之后导入系统自动生成的私钥到metamask 钱包里，显示出正确的余额， 转账到其它钱包地址里，流程正确。
+
+之后创建一个简单的ERC20 标准合约，
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract AVAToken is ERC20 {
+    constructor() ERC20("AVA", "AVA") {
+        _mint(msg.sender, 1_000_000 * (10 ** decimals()));
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
+}
+
+
+在浏览器里打开remix.ethereum.org 
+链接meta mask ， 确认正确选择了本地网络vic 
+
+编译合约通过之后，deploy . 在钱包里确认之后， 提示部署成功。 
+
+复制AVATOKEN合约地址 0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407
+
+到metamask 钱包里添加这个合约地址， 余额显示正确，之后测试转账这个TOKEN 到其它钱包地址，反馈正确。
+
+
+
+
+ 
+
+
+
+
+
+
